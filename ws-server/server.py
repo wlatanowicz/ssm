@@ -1,4 +1,4 @@
-from elasticsearch_dsl import DocType, Date, Integer, Keyword, Text, Double
+from elasticsearch_dsl import DocType, Date, Text, Double
 from elasticsearch_dsl.connections import connections
 
 from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
@@ -27,12 +27,23 @@ connections.create_connection(
 
 class Measurement(DocType):
     device_id = Text()
-    timestamp = Integer()
+    timestamp = Date()
     s1 = Double()
     s2 = Double()
 
     class Meta:
         index = 'measurements'
+
+    @classmethod
+    def array_factory(cls, input_measurements):
+        measurements = []
+        for m in input_measurements:
+            measurements.append(cls.from_dict(m))
+        return measurements
+
+    @classmethod
+    def from_dict(cls, m):
+        return cls(device_id=m['id'], timestamp=m['ts'], s1=m['s1'], s2=m['s2'])
 
 
 class MessageReceiver(WebSocket):
@@ -40,16 +51,12 @@ class MessageReceiver(WebSocket):
     def handleMessage(self):
         logging.debug("Message (%s) from %s", self.data, self.address)
         data = json.loads(self.data)
-        try:
-            mes = Measurement(
-                device_id=data['id'],
-                timestamp=data['ts'],
-                s1=data['s1'],
-                s2=data['s2']
-            )
-            mes.save()
-        except Exception as e:
-            logging.debug("Error storing measurement", e)
+        if isinstance(data, dict):
+            try:
+                mes = Measurement.from_dict(data)
+                mes.save()
+            except Exception as e:
+                logging.debug("Error storing measurement", e)
 
     def handleConnected(self):
         logging.debug("Connected %s", self.address)
