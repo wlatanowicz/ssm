@@ -1,7 +1,10 @@
 from elasticsearch_dsl import DocType, Date, Text, Double
 from elasticsearch_dsl.connections import connections
+from elasticsearch.helpers import streaming_bulk
+from elasticsearch import Elasticsearch
 
 from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
+
 import configparser
 import logging
 import json
@@ -18,11 +21,9 @@ clients.read('/config/clients.ini')
 
 logging.debug("Client list loaded")
 
-connections.create_connection(
-    hosts=[
+es = Elasticsearch([
         config['elasticsearch']['host'] + ':' + config['elasticsearch']['port']
-    ]
-)
+    ])
 
 
 class Measurement(DocType):
@@ -54,7 +55,14 @@ class MessageReceiver(WebSocket):
         if isinstance(data, dict):
             try:
                 mes = Measurement.from_dict(data)
-                mes.save()
+                mes.save(es)
+            except Exception as e:
+                logging.debug("Error storing measurement", e)
+        if isinstance(data, list):
+            try:
+                mes = Measurement.array_factory(data)
+                for ok, info in streaming_bulk(es, (d.to_dict(True) for d in mes)):
+                    print("Document with id %s indexed." % info['index']['_id'])
             except Exception as e:
                 logging.debug("Error storing measurement", e)
 
