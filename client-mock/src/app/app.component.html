@@ -1,0 +1,27 @@
+<h1>SSM Device Mock</h1>
+
+<p>
+  <input [(ngModel)]="url" placeholder="ws://localhost:8000">
+</p>
+<p>
+  <input [(ngModel)]="deviceId" placeholder="12345-67890">
+</p>
+<p>
+  <input [(ngModel)]="measureInterval" placeholder="100"> ms
+</p>
+<p>
+  <select [(ngModel)]="packetSize">
+    <option value="0">single</option>
+    <option value="1">array[1]</option>
+    <option value="5">array[5]</option>
+    <option value="10">array[10]</option>
+    <option value="50">array[50]</option>
+    <option value="100">array[100]</option>
+  </select>
+</p>
+<p *ngIf="!isConnected()">
+  <button (click)="connect()">Connect</button>
+</p>
+<p *ngIf="isConnected()">
+  <button (click)="disconnect()">Disconnect</button>
+</p>
