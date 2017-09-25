@@ -1,17 +1,24 @@
+local utils = require("utils")
+
 --configuration: BEGIN
 
 --wifi
-wifiSSID = "astrohub";
-wifiPassword = "1qazxsw23edc";
+wifiCfg = {}
+wifiCfg.ssid = "flux2g";
+wifiCfg.pwd = "1qazxsw23edc";
 
 wifiDHCP = false;
-wifiIP = "192.168.0.51";
+wifiIP = "192.168.0.61";
 wifiMask = "255.255.255.0"
 wifiGateway = "192.168.0.1"
 
+ntpServerIp = "17.253.38.253";
+
+deviceID = node.chipid() .. "-" .. node.flashid();
+
 -- Pin definition 
 local pin = 8
-local duration = 5
+local duration = 500
 
 --configuration:END
 
@@ -19,7 +26,7 @@ local duration = 5
 --init network:
 
 wifi.setmode(wifi.STATION);
-wifi.sta.config(wifiSSID, wifiPassword);
+wifi.sta.config(wifiCfg);
 
 if (not wifiDHCP) then
     wifi.sta.setip({
@@ -37,6 +44,9 @@ end
 -- Initialising pin
 gpio.mode(pin, gpio.OUTPUT)
 
+sntp.sync(ntpServerIp, nil, nil, 1)
+--rtctime.set(1436430589, 0);
+
 -- Create an interval
 tmr.alarm(0, duration, 1, function ()
     local measure1
@@ -46,5 +56,18 @@ tmr.alarm(0, duration, 1, function ()
     gpio.write(pin, gpio.LOW)
     measure2 = adc.read(0)
 
+    local sec, usec, rate = rtctime.get()
+
+    print(sec .. "." .. utils.strpad(usec, 6, "0", STR_PAD_LEFT))
     print(measure1, measure2)
+    
+    local json = sjson.encode({
+          id = deviceID,
+          ts = sec .. "." .. utils.strpad(usec, 6, "0", STR_PAD_LEFT),
+          m1 = measure1,
+          m2 = measure2
+        })
+      
+    print(123/2)
+    print(json)
 end)
