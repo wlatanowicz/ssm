@@ -18,7 +18,6 @@ deviceID = node.chipid() .. "-" .. node.flashid();
 
 -- Pin definition 
 local pin = 8
-local duration = 500
 
 --configuration:END
 
@@ -47,27 +46,73 @@ gpio.mode(pin, gpio.OUTPUT)
 sntp.sync(ntpServerIp, nil, nil, 1)
 --rtctime.set(1436430589, 0);
 
--- Create an interval
-tmr.alarm(0, duration, 1, function ()
+-- init WS client
+local ws = websocket.createClient()
+ws:connect('ws://ssm.tsdev.pl:8000')
+local wsConneted = false
+
+local i = 0
+local n = 1000
+local valueB = 0
+local ivalueB = 0
+
+local main = function ()
+    
     local measure1
     local measure2
-    gpio.write(pin, gpio.HIGH)
-    measure1 = adc.read(0)
+    local value
+    local ivalue
     gpio.write(pin, gpio.LOW)
+    measure1 = adc.read(0)
+    gpio.write(pin, gpio.HIGH)
     measure2 = adc.read(0)
-
-    local sec, usec, rate = rtctime.get()
-
-    print(sec .. "." .. utils.strpad(usec, 6, "0", STR_PAD_LEFT))
-    print(measure1, measure2)
     
-    local json = sjson.encode({
-          id = deviceID,
-          ts = sec .. "." .. utils.strpad(usec, 6, "0", STR_PAD_LEFT),
-          m1 = measure1,
-          m2 = measure2
-        })
+    value = (measure2 - 511.) * 2.5 / 511.
+    valueB = valueB + math.pow(value, 2)
+    
+    ivalue = (measure1 - 511.) * 2.5 / 511.
+    ivalueB = ivalueB + ivalue
+    
+    i = i + 1
+    
+    if ( i >= n ) then
+    
+      local s = ((4.46 * math.sqrt(valueB / i)) - 0.05) / ((ivalueB / i) + 0.0)
+    
+      local sec, usec, rate = rtctime.get()
+
+      local json = sjson.encode({
+            id = deviceID,
+            ts = sec .. "." .. utils.strpad(usec, 6, "0", STR_PAD_LEFT),
+            s = s
+          })
       
-    print(123/2)
-    print(json)
+      print(json)
+      if (wsConneted) then
+        ws:send(json)
+        print("sent")
+      else
+        print("WS not connected")
+      end
+      
+      i = 0
+      valueB = 0
+      ivalueB = 0
+      
+    end
+    
+    tmr.start(0)
+end
+
+ws:on("connection", function(ws)
+  print('got ws connection')
+  wsConneted = true
+  tmr.alarm(0, 1, tmr.ALARM_SEMI, main)
 end)
+
+ws:on("close", function(_, status)
+  print('connection closed', status)
+  wsConneted = false
+  ws = nil -- required to lua gc the websocket client
+end)
+
