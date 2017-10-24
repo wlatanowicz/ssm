@@ -29,8 +29,7 @@ es = Elasticsearch([
 class Measurement(DocType):
     device_id = Text()
     timestamp = Date()
-    s1 = Double()
-    s2 = Double()
+    s = Double()
 
     class Meta:
         index = 'measurements'
@@ -45,7 +44,7 @@ class Measurement(DocType):
     @classmethod
     def from_dict(cls, m):
         ts = datetime.utcfromtimestamp(float(m['ts']))
-        return cls(device_id=m['id'], timestamp=ts, s1=m['s1'], s2=m['s2'])
+        return cls(device_id=m['id'], timestamp=ts, s=m['s'])
 
 
 class MessageReceiver(WebSocket):
