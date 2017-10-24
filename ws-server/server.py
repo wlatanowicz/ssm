@@ -2,7 +2,7 @@ from elasticsearch_dsl import DocType, Date, Text, Double
 from elasticsearch_dsl.connections import connections
 from elasticsearch.helpers import streaming_bulk
 from elasticsearch import Elasticsearch
-
+from datetime import datetime
 from SimpleWebSocketServer import SimpleWebSocketServer, WebSocket
 
 import configparser
@@ -44,7 +44,8 @@ class Measurement(DocType):
 
     @classmethod
     def from_dict(cls, m):
-        return cls(device_id=m['id'], timestamp=m['ts'], s1=m['s1'], s2=m['s2'])
+        ts = datetime.utcfromtimestamp(float(m['ts']))
+        return cls(device_id=m['id'], timestamp=ts, s1=m['s1'], s2=m['s2'])
 
 
 class MessageReceiver(WebSocket):
