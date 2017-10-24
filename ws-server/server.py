@@ -9,7 +9,7 @@ import configparser
 import logging
 import json
 
-logging.basicConfig(format='%(asctime)s %(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(asctime)s %(message)s', level=logging.INFO)
 
 config = configparser.ConfigParser()
 config.read('/config/server.ini')
@@ -50,27 +50,27 @@ class Measurement(DocType):
 class MessageReceiver(WebSocket):
 
     def handleMessage(self):
-        logging.debug("Message (%s) from %s", self.data, self.address)
+        logging.info("Message (%s) from %s", self.data, self.address)
         data = json.loads(self.data)
         if isinstance(data, dict):
             try:
                 mes = Measurement.from_dict(data)
                 mes.save(es)
             except Exception as e:
-                logging.debug("Error storing measurement", e)
+                logging.error("Error storing measurement", e)
         if isinstance(data, list):
             try:
                 mes = Measurement.array_factory(data)
                 for ok, info in streaming_bulk(es, (d.to_dict(True) for d in mes)):
                     print("Document with id %s indexed." % info['index']['_id'])
             except Exception as e:
-                logging.debug("Error storing measurement", e)
+                logging.error("Error storing measurement", e)
 
     def handleConnected(self):
-        logging.debug("Connected %s", self.address)
+        logging.info("Connected %s", self.address)
 
     def handleClose(self):
-        logging.debug("Disconnected %s", self.address)
+        logging.info("Disconnected %s", self.address)
 
 
 server = SimpleWebSocketServer(
