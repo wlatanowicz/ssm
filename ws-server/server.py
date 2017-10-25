@@ -18,6 +18,7 @@ logging.debug("Config loaded")
 
 clients = configparser.ConfigParser()
 clients.read('/config/clients.ini')
+client_list = clients['clients']
 
 logging.debug("Client list loaded")
 
@@ -28,6 +29,7 @@ es = Elasticsearch([
 
 class Measurement(DocType):
     device_id = Text()
+    device_name = Text()
     timestamp = Date()
     s = Double()
 
@@ -43,8 +45,14 @@ class Measurement(DocType):
 
     @classmethod
     def from_dict(cls, m):
-        ts = datetime.utcfromtimestamp(float(m['ts']))
-        return cls(device_id=m['id'], timestamp=ts, s=m['s'])
+        ts = datetime.now()
+        device_name = client_list[m['id']]
+        return cls(
+            device_id=m['id'],
+            device_name=device_name,
+            timestamp=ts,
+            s=m['s']
+        )
 
 
 class MessageReceiver(WebSocket):
@@ -64,7 +72,7 @@ class MessageReceiver(WebSocket):
                 for ok, info in streaming_bulk(es, (d.to_dict(True) for d in mes)):
                     print("Document with id %s indexed." % info['index']['_id'])
             except Exception as e:
-                logging.error("Error storing measurement", e)
+                logging.error("Error storing measurements", e)
 
     def handleConnected(self):
         logging.info("Connected %s", self.address)

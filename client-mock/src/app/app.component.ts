@@ -53,9 +53,7 @@ export class AppComponent implements OnInit {
   measure() {
     this.measures.push({
       id: this.deviceId,
-      ts: new Date().getTime(),
-      s1: Math.random() * 1000,
-      s2: Math.random() * 1000,
+      s: Math.random() * 1000,
     });
   }
 
