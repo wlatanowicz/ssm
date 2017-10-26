@@ -18,6 +18,7 @@ deviceID = node.chipid() .. "-" .. node.flashid();
 
 -- Pin definition 
 local pin = 8
+local led = 4
 
 --configuration:END
 
@@ -42,6 +43,7 @@ else
 end
 -- Initialising pin
 gpio.mode(pin, gpio.OUTPUT)
+gpio.mode(led, gpio.OUTPUT)
 
 sntp.sync(ntpServerIp, nil, nil, 1)
 --rtctime.set(1436430589, 0);
@@ -76,6 +78,7 @@ local main = function ()
     i = i + 1
     
     if ( i >= n ) then
+      gpio.write(led, gpio.LOW)
     
       local s = ((4.46 * math.sqrt(valueB / i)) - 0.05) / ((ivalueB / i) + 0.0)
     
@@ -99,6 +102,7 @@ local main = function ()
       valueB = 0
       ivalueB = 0
       
+      gpio.write(led, gpio.HIGH)      
     end
     
     tmr.start(0)
